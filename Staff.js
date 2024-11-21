@@ -3,18 +3,18 @@ import { View, StyleSheet,Text } from 'react-native';
 import { Appbar, useTheme } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-
+import { useNavigation } from '@react-navigation/native';
 export default function Staff() {
   const theme = useTheme();
-
+  const navigation = useNavigation();
   return (
     <LinearGradient
       colors={["#C33764" , "#1D2671"]} // Gradient colors matching Login.js
       style={styles.background}
     >
       <Appbar.Header style={styles.appBar}>
-        <Ionicons name="person-circle-outline" size={28} color="#fff" style={styles.icon} />
-        <MaterialCommunityIcons name="qrcode-scan" size={28} color="#fff" style={styles.icon} />
+        <Ionicons name="person-circle-outline" size={28} color="#fff" onPress={() => navigation.navigate('Staffpro')} style={styles.icon} />
+        <MaterialCommunityIcons name="qrcode-scan" size={28} color="#fff" onPress={() => navigation.navigate('scan')} style={styles.icon} />
       </Appbar.Header>
       <View style={styles.container}>
         {/* Add your staff content here */}

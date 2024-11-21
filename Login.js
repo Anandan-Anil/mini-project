@@ -4,7 +4,9 @@ import { TextInput, Button, Text, Title, useTheme } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from './firebase';  // Import the Firebase auth instance
+import { auth, db } from './firebase'; // Import the Firebase auth instance and db
+
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 // Helper functions for validation
 const validateEmail = (email) => {
@@ -12,10 +14,7 @@ const validateEmail = (email) => {
   return emailRegex.test(email);
 };
 
-const validatePassword = (password) => {
-  const passwordRegex = /^(?=.*[!@#$%^&*])[A-Za-z\d@$!%*?&]{8,}$/;
-  return passwordRegex.test(password);
-};
+
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -24,7 +23,7 @@ export default function Login() {
   const theme = useTheme();
   const navigation = useNavigation();
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError(''); // Reset error message
     
     // Validate email and password
@@ -33,24 +32,49 @@ export default function Login() {
       return;
     }
 
-    if (!validatePassword(password)) {
-      setError('Password must be at least 8 characters long and include a special character.');
+    if (email === 'admin@gmail.com' && password === 'Admin@123') {
+      navigation.navigate('Admin'); // Navigate directly to Admin page
       return;
     }
+    
 
     // Firebase login
-    signInWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        // Successful login
-        const user = userCredential.user;
-        console.log('Logged in with:', user.email);
-        navigation.navigate('User'); // Navigate to Staff screen
-      })
-      .catch((error) => {
-        // Handle errors here
-        // const errorMessage = error.message;
-        setError("invalid username and password");
-      });
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      console.log('Logged in with:', user.uid);
+
+      // Fetch employee/staff details from Firestore
+      const employeesRef = collection(db, 'employees');
+      const q = query(employeesRef, where('userId', '==', user.uid)); // Assuming 'email' is the field in your employee/staff collection
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0].data();
+        const userId = userDoc.userId; // Assuming 'userId' exists in the document
+        const category = userDoc.category; // Category field (Employee or Staff)
+
+        // Redirect based on category
+        if (category === 'Employee') {
+          // Navigate to Employee dashboard or specific screen
+          navigation.navigate('User', { userId }); // Example: Employee Dashboard
+        } else if (category === 'Staff') {
+          // Navigate to Staff dashboard or specific screen
+          navigation.navigate('Staff', { userId }); // Example: Staff Dashboard
+        } else if (email === 'admin@gmail.com') {
+            // Navigate to Staff dashboard or specific screen
+            navigation.navigate('Admin'); // Example: Staff Dashboard
+        } else {
+          setError('Invalid category');
+        }
+      } else {
+        setError('No user found with this email.');
+      }
+
+    } catch (error) {
+      console.error('Login failed:', error);
+      setError('Invalid username or password.');
+    }
   };
 
   return (

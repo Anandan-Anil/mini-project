@@ -1,25 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Text, Image } from 'react-native';
+import { View, StyleSheet, Text, Image, Button } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from 'react-native-paper';
-import { doc, getDoc } from 'firebase/firestore';
+import { query, collection, where, getDocs } from 'firebase/firestore';
 import { db } from './firebase'; // Ensure correct path
+import * as ImagePicker from 'expo-image-picker';
+import { getAuth } from 'firebase/auth';
 
 export default function Profile() {
   const [profileData, setProfileData] = useState(null);
   const theme = useTheme();
-  
+  const auth = getAuth();
+  const user = auth.currentUser;
+
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
-        const docId = 'Hyb5h0TVgS6oiNLQKh5u'; // Document ID
-        const docRef = doc(db, 'users', docId); // Firestore reference
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-          setProfileData(docSnap.data());
-        } else {
-          console.log('No such document!');
+        if (user) {
+          const q = query(collection(db, 'employees'), where('userId', '==', user.uid));
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+            const docData = querySnapshot.docs[0].data(); // Assuming one document per user
+            setProfileData(docData);
+          } else {
+            console.log('No document found for the user!');
+          }
         }
       } catch (error) {
         console.error('Error fetching document:', error);
@@ -27,7 +33,7 @@ export default function Profile() {
     };
 
     fetchProfileData();
-  }, []);
+  }, [user]);
 
   if (!profileData) {
     return (
@@ -37,86 +43,75 @@ export default function Profile() {
     );
   }
 
-  console.log('Profile Picture URL:', profileData.pic);
-
-
   return (
-    <LinearGradient
-      colors={["#C33764", "#1D2671"]}
-      style={styles.background}
-    >
+    <LinearGradient colors={["#C33764", "#1D2671"]} style={styles.background}>
       <View style={styles.container}>
-        {profileData.pic ? (
+        {profileData.profilePicURL ? (
           <Image
-          source={{ uri: profileData.pic|| 'https://beforeigosolutions.com/wp-content/uploads/2021/12/dummy-profile-pic-300x300-1.png' }}
-          style={styles.profileImage}
-        />        
+            source={{ uri: profileData.profilePicURL }}
+            style={styles.profileImage}
+          />
         ) : null}
         <Text style={styles.title}>Profile Information</Text>
         <Text style={styles.label}>Full Name:</Text>
-        <Text style={styles.value}>{profileData.name}</Text>
-
-        <Text style={styles.label}>Register Number:</Text>
-        <Text style={styles.value}>{profileData.register}</Text>
-
-        <Text style={styles.label}>Address:</Text>
-        <Text style={styles.value}>{profileData.address}</Text>
-
+        <Text style={styles.value}>{profileData.Username}</Text>
+        <Text style={styles.label}>Contact Number:</Text>
+        <Text style={styles.value}>{profileData.Contact}</Text>
+        <Text style={styles.label}>Category:</Text>
+        <Text style={styles.value}>{profileData.category}</Text>
         <Text style={styles.label}>Department:</Text>
         <Text style={styles.value}>{profileData.department}</Text>
 
-        <Text style={styles.label}>Semester:</Text>
-        <Text style={styles.value}>{profileData.semester}</Text>
       </View>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-    background: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-      },
-      container: {
-        width: '85%',
-        padding: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        borderRadius: 10,
-        elevation: 5,
-        alignItems: 'center',
-      },
-      profileImage: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        marginBottom: 20,
-      },
-      title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 20,
-        color: '#333',
-      },
-      label: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#333',
-        marginTop: 10,
-      },
-      value: {
-        fontSize: 18,
-        color: '#555',
-        marginBottom: 10,
-      },
-      loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-      },
-      loadingText: {
-        fontSize: 20,
-        color: '#333',
-      },
-    });
+  background: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  container: {
+    width: '85%',
+    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 10,
+    elevation: 5,
+    alignItems: 'center',
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#333',
+  },
+  label: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 10,
+  },
+  value: {
+    fontSize: 18,
+    color: '#555',
+    marginBottom: 10,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 20,
+    color: '#333',
+  },
+});
